@@ -1,0 +1,11 @@
+# target
+main
+offline_compiler
+
+# binaries
+*.o
+*.a
+*.so
+
+# OpenCL
+*.clbin

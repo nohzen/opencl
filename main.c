@@ -56,9 +56,16 @@ int main() {
     CL_TRY(clEnqueueWriteBuffer(command_queue, memobj, CL_TRUE, 0, MEM_SIZE * sizeof(float), mem, 0, NULL, NULL));
 
     /* Program */
+    int use_binary = 0;
     FILE *fp = NULL;
-    char filename[] = "kernel.cl";
-    fp = fopen(filename, "r");
+    if (use_binary) {
+        char filename[] = "kernel.clbin";
+        fp = fopen(filename, "r");
+    }
+    else {
+        char filename[] = "kernel.cl";
+        fp = fopen(filename, "r");
+    }
     if (!fp) {
         fprintf(stderr, "error: Failed to load kernel file.\n");
         exit(1);
@@ -68,10 +75,17 @@ int main() {
     fclose(fp);
 
     cl_program program = NULL;
-    program = clCreateProgramWithSource(context, 1, (const char **)&source_str, (const size_t*)&source_size, &ret);
-    CL_TRY(ret);
-    CL_TRY(clBuildProgram(program, 1, device_id, NULL, NULL, NULL));
-    // print_program_info(program);
+    if (use_binary) {
+        cl_int binary_status;
+        program = clCreateProgramWithBinary(context, 1, device_id, (const size_t *)&source_size, (const unsigned char **)&source_str, &binary_status, &ret);
+        CL_TRY(ret);
+        CL_TRY(clBuildProgram(program, 1, device_id, NULL, NULL, NULL)); // Need on Intel GPU
+    }
+    else {
+        program = clCreateProgramWithSource(context, 1, (const char **)&source_str, (const size_t *)&source_size, &ret);
+        CL_TRY(ret);
+        CL_TRY(clBuildProgram(program, 1, device_id, NULL, NULL, NULL));
+    }
 
     /* Kernel */
     cl_kernel kernel = NULL;

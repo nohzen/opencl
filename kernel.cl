@@ -1,7 +1,6 @@
 #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable
 
-__kernel void hello(__global char* string)
-{
+__kernel void hello(__global char* string) {
    string[0] = 'H';
    string[1] = 'e';
    string[2] = 'l';
@@ -18,9 +17,10 @@ __kernel void hello(__global char* string)
    string[13] = '\0';
 }
 
-__kernel void vecAdd(__global float* a)
-{
+__kernel void vecAdd(__global float* a) {
    int gid = get_global_id(0);
-
    a[gid] += a[gid];
 }
+
+
+

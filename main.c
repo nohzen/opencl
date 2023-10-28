@@ -6,8 +6,8 @@
 
 #define MAX_PLATFORMS 3
 #define MAX_DEVICES 3
-#define MATRIX_SIZE 4
 #define MAX_SOURCE_SIZE (0x100000)
+#define LOCAL_MEM_SIZE (65536 / 8)
 
 int main() {
     cl_int ret = CL_SUCCESS;
@@ -48,24 +48,9 @@ int main() {
 
     /* Memory Object */
     cl_mem memobjA = NULL;
-    cl_mem memobjB = NULL;
-    cl_mem memobjC = NULL;
-    memobjA = clCreateBuffer(context, CL_MEM_READ_WRITE, MATRIX_SIZE*MATRIX_SIZE*sizeof(float), NULL, &ret);
-    memobjB = clCreateBuffer(context, CL_MEM_READ_WRITE, MATRIX_SIZE*MATRIX_SIZE*sizeof(float), NULL, &ret);
-    memobjC = clCreateBuffer(context, CL_MEM_READ_WRITE, MATRIX_SIZE*MATRIX_SIZE*sizeof(float), NULL, &ret);
-    CL_TRY(ret);
-
-    float memA[MATRIX_SIZE*MATRIX_SIZE];
-    float memB[MATRIX_SIZE*MATRIX_SIZE];
-    float memC[MATRIX_SIZE*MATRIX_SIZE];
-    for (int i = 0; i < MATRIX_SIZE; i++) {
-        for (int j = 0; j < MATRIX_SIZE; j++) {
-            memA[i*MATRIX_SIZE + j] = i*MATRIX_SIZE + j + 1;
-            memB[i*MATRIX_SIZE + j] = j*MATRIX_SIZE + i + 1;
-        }
-    }
-    CL_TRY(clEnqueueWriteBuffer(command_queue, memobjA, CL_TRUE, 0, MATRIX_SIZE*MATRIX_SIZE*sizeof(float), memA, 0, NULL, NULL));
-    CL_TRY(clEnqueueWriteBuffer(command_queue, memobjB, CL_TRUE, 0, MATRIX_SIZE*MATRIX_SIZE*sizeof(float), memB, 0, NULL, NULL));
+    memobjA = clCreateBuffer(context, CL_MEM_READ_WRITE, LOCAL_MEM_SIZE*sizeof(int), NULL, &ret);
+    int memA[LOCAL_MEM_SIZE];
+    CL_TRY(clEnqueueWriteBuffer(command_queue, memobjA, CL_TRUE, 0, LOCAL_MEM_SIZE*sizeof(int), memA, 0, NULL, NULL));
 
     /* Program */
     int use_binary = 0;
@@ -101,25 +86,25 @@ int main() {
 
     /* Kernel */
     cl_kernel kernel = NULL;
-    kernel = clCreateKernel(program, "dataParallel", &ret);
+    kernel = clCreateKernel(program, "local_test", &ret);
     CL_TRY(ret);
-    CL_TRY(clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&memobjA));
-    CL_TRY(clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&memobjB));
-    CL_TRY(clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&memobjC));
+    cl_int local_mem_size = LOCAL_MEM_SIZE;
+    CL_TRY(clSetKernelArg(kernel, 0, local_mem_size, NULL));
+    // CL_TRY(clSetKernelArg(kernel, 0, sizeof(memobjA), &memobjA));
+    CL_TRY(clSetKernelArg(kernel, 1, sizeof(local_mem_size), &local_mem_size));
 
     // CL_TRY(clEnqueueTask(command_queue, kernel, 0, NULL, NULL)); // deprecated
-    size_t global_work_size[3] = {MATRIX_SIZE*MATRIX_SIZE, 0, 0};
+    size_t global_work_size[3] = {1, 0, 0};
     size_t local_work_size[3] = {1, 0, 0};
-    CL_TRY(clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL));
+    cl_event event;
+    CL_TRY(clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event));
+    CL_TRY(clWaitForEvents(1, &event));
 
     /* Read */
-    CL_TRY(clEnqueueReadBuffer(command_queue, memobjC, CL_TRUE, 0, MATRIX_SIZE*MATRIX_SIZE*sizeof(float), memC, 0, NULL, NULL));
-    for (int i = 0; i < MATRIX_SIZE; i++) {
-        for (int j = 0; j < MATRIX_SIZE; j++) {
-            printf("memC[%d, %d]: %7.2f    ", i, j, memC[i*MATRIX_SIZE + j]);
-        }
-        printf("\n");
-    }
+    // CL_TRY(clEnqueueReadBuffer(command_queue, memobjA, CL_TRUE, 0, LOCAL_MEM_SIZE*sizeof(int), memA, 0, NULL, NULL));
+    // for (int i = 0; i < LOCAL_MEM_SIZE; i++) {
+    //     printf("[%d] : %d\n", i, memA[i]);
+    // }
 
     /* Release */
     CL_TRY(clFlush(command_queue));
@@ -128,8 +113,6 @@ int main() {
     CL_TRY(clReleaseKernel(kernel));
     CL_TRY(clReleaseProgram(program));
     CL_TRY(clReleaseMemObject(memobjA));
-    CL_TRY(clReleaseMemObject(memobjB));
-    CL_TRY(clReleaseMemObject(memobjC));
     CL_TRY(clReleaseCommandQueue(command_queue));
     CL_TRY(clReleaseContext(context));
 

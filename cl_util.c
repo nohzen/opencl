@@ -137,6 +137,13 @@ cl_uint print_device_info_uint(cl_device_id device, cl_device_info param_name, c
     return param_value;
 }
 
+cl_ulong print_device_info_cl_ulong(cl_device_id device, cl_device_info param_name, char *param_name_str) {
+    cl_ulong param_value;
+    CL_TRY(clGetDeviceInfo(device, param_name, sizeof(cl_ulong), &param_value, NULL));
+    printf("    %s: %ld\n", param_name_str, param_value);
+    return param_value;
+}
+
 size_t print_device_info_size_t(cl_device_id device, cl_device_info param_name, char *param_name_str) {
     size_t param_value;
     CL_TRY(clGetDeviceInfo(device, param_name, sizeof(size_t), &param_value, NULL));
@@ -145,6 +152,7 @@ size_t print_device_info_size_t(cl_device_id device, cl_device_info param_name, 
 }
 
 void print_device_info(cl_device_id device) {
+    /* General */
     print_device_info_char(device, CL_DEVICE_NAME, GET_STR(CL_DEVICE_NAME));
     {
         cl_device_type device_type;
@@ -169,6 +177,7 @@ void print_device_info(cl_device_id device) {
     print_device_info_char(device, CL_DEVICE_OPENCL_C_VERSION, GET_STR(CL_DEVICE_OPENCL_C_VERSION));
     // print_device_info_char(device, CL_DEVICE_EXTENSIONS, GET_STR(CL_DEVICE_EXTENSIONS));
 
+    /* Work item */
     print_device_info_uint(device, CL_DEVICE_MAX_COMPUTE_UNITS, GET_STR(CL_DEVICE_MAX_COMPUTE_UNITS));
     {
         cl_uint work_dim = print_device_info_uint(device, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, GET_STR(CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS));
@@ -181,6 +190,41 @@ void print_device_info(cl_device_id device) {
         free(work_item_sizes);
     }
     print_device_info_size_t(device, CL_DEVICE_MAX_WORK_GROUP_SIZE, GET_STR(CL_DEVICE_MAX_WORK_GROUP_SIZE));
+
+    /* Vector (SIMD) */
+    print_device_info_uint(device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR, GET_STR(CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR));
+    print_device_info_uint(device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT, GET_STR(CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT));
+    print_device_info_uint(device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT, GET_STR(CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT));
+    print_device_info_uint(device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG, GET_STR(CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG));
+    print_device_info_uint(device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT, GET_STR(CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT));
+    print_device_info_uint(device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE, GET_STR(CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE));
+    print_device_info_uint(device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF, GET_STR(CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF));
+    print_device_info_uint(device, CL_DEVICE_NATIVE_VECTOR_WIDTH_CHAR, GET_STR(CL_DEVICE_NATIVE_VECTOR_WIDTH_CHAR));
+    print_device_info_uint(device, CL_DEVICE_NATIVE_VECTOR_WIDTH_SHORT, GET_STR(CL_DEVICE_NATIVE_VECTOR_WIDTH_SHORT));
+    print_device_info_uint(device, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT, GET_STR(CL_DEVICE_NATIVE_VECTOR_WIDTH_INT));
+    print_device_info_uint(device, CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG, GET_STR(CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG));
+    print_device_info_uint(device, CL_DEVICE_NATIVE_VECTOR_WIDTH_FLOAT, GET_STR(CL_DEVICE_NATIVE_VECTOR_WIDTH_FLOAT));
+    print_device_info_uint(device, CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE, GET_STR(CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE));
+    print_device_info_uint(device, CL_DEVICE_NATIVE_VECTOR_WIDTH_HALF, GET_STR(CL_DEVICE_NATIVE_VECTOR_WIDTH_HALF));
+
+    /* Spec */
+    print_device_info_uint(device, CL_DEVICE_MAX_CLOCK_FREQUENCY, GET_STR(CL_DEVICE_MAX_CLOCK_FREQUENCY)); // MHz
+    print_device_info_uint(device, CL_DEVICE_ADDRESS_BITS, GET_STR(CL_DEVICE_ADDRESS_BITS));
+
+    {
+        cl_device_local_mem_type local_mem_type;
+        CL_TRY(clGetDeviceInfo(device, CL_DEVICE_LOCAL_MEM_TYPE, sizeof(cl_device_local_mem_type), &local_mem_type, NULL));
+        if (local_mem_type == CL_LOCAL) {
+            printf("    %s: %s\n", "CL_DEVICE_LOCAL_MEM_TYPE", "CL_LOCAL");
+            // dedicated local memory storage such as SRAM
+        }
+        else if (local_mem_type == CL_GLOBAL) {
+            printf("    %s: %s\n", "CL_DEVICE_LOCAL_MEM_TYPE", "CL_GLOBAL");
+        }
+    }
+    print_device_info_cl_ulong(device, CL_DEVICE_LOCAL_MEM_SIZE, GET_STR(CL_DEVICE_LOCAL_MEM_SIZE)); // bytes
+
+
 
 }
 

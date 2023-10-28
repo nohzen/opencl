@@ -30,3 +30,9 @@ __kernel void dataParallel(__global float* A, __global float* B, __global float*
    C[base+2] = A[base+2] * B[base+2];
    C[base+3] = A[base+3] / B[base+3];
 }
+
+__kernel void local_test(__local int *p, int local_size) {
+   for (int i=0; i<local_size; i++) {
+      p[i] = i;
+   }
+}

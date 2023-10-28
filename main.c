@@ -6,7 +6,7 @@
 
 #define MAX_PLATFORMS 3
 #define MAX_DEVICES 3
-#define MEM_SIZE 8
+#define MATRIX_SIZE 4
 #define MAX_SOURCE_SIZE (0x100000)
 
 int main() {
@@ -41,19 +41,31 @@ int main() {
     /* Command queue */
     cl_command_queue command_queue = NULL;
     // command_queue = clCreateCommandQueue(context, device_id[0], 0, &ret); // deprecated
-    command_queue = clCreateCommandQueueWithProperties(context, device_id[0], NULL, &ret);
+    const cl_queue_properties *properties = NULL;
+    // const cl_queue_properties properties[] = {CL_QUEUE_PROPERTIES, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | CL_QUEUE_PROFILING_ENABLE, 0};
+    command_queue = clCreateCommandQueueWithProperties(context, device_id[0], properties, &ret);
     CL_TRY(ret);
 
     /* Memory Object */
-    cl_mem memobj = NULL;
-    memobj = clCreateBuffer(context, CL_MEM_READ_WRITE, MEM_SIZE * sizeof(float) , NULL, &ret);
+    cl_mem memobjA = NULL;
+    cl_mem memobjB = NULL;
+    cl_mem memobjC = NULL;
+    memobjA = clCreateBuffer(context, CL_MEM_READ_WRITE, MATRIX_SIZE*MATRIX_SIZE*sizeof(float), NULL, &ret);
+    memobjB = clCreateBuffer(context, CL_MEM_READ_WRITE, MATRIX_SIZE*MATRIX_SIZE*sizeof(float), NULL, &ret);
+    memobjC = clCreateBuffer(context, CL_MEM_READ_WRITE, MATRIX_SIZE*MATRIX_SIZE*sizeof(float), NULL, &ret);
     CL_TRY(ret);
 
-    float mem[MEM_SIZE];
-    for (int i = 0; i < MEM_SIZE; i++) {
-        mem[i] = i;
+    float memA[MATRIX_SIZE*MATRIX_SIZE];
+    float memB[MATRIX_SIZE*MATRIX_SIZE];
+    float memC[MATRIX_SIZE*MATRIX_SIZE];
+    for (int i = 0; i < MATRIX_SIZE; i++) {
+        for (int j = 0; j < MATRIX_SIZE; j++) {
+            memA[i*MATRIX_SIZE + j] = i*MATRIX_SIZE + j + 1;
+            memB[i*MATRIX_SIZE + j] = j*MATRIX_SIZE + i + 1;
+        }
     }
-    CL_TRY(clEnqueueWriteBuffer(command_queue, memobj, CL_TRUE, 0, MEM_SIZE * sizeof(float), mem, 0, NULL, NULL));
+    CL_TRY(clEnqueueWriteBuffer(command_queue, memobjA, CL_TRUE, 0, MATRIX_SIZE*MATRIX_SIZE*sizeof(float), memA, 0, NULL, NULL));
+    CL_TRY(clEnqueueWriteBuffer(command_queue, memobjB, CL_TRUE, 0, MATRIX_SIZE*MATRIX_SIZE*sizeof(float), memB, 0, NULL, NULL));
 
     /* Program */
     int use_binary = 0;
@@ -89,19 +101,24 @@ int main() {
 
     /* Kernel */
     cl_kernel kernel = NULL;
-    kernel = clCreateKernel(program, "vecAdd", &ret);
+    kernel = clCreateKernel(program, "dataParallel", &ret);
     CL_TRY(ret);
-    CL_TRY(clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&memobj));
+    CL_TRY(clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&memobjA));
+    CL_TRY(clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&memobjB));
+    CL_TRY(clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&memobjC));
 
     // CL_TRY(clEnqueueTask(command_queue, kernel, 0, NULL, NULL)); // deprecated
-    size_t global_work_size[3] = {MEM_SIZE, 0, 0};
-    size_t local_work_size[3] = {MEM_SIZE, 0, 0};
+    size_t global_work_size[3] = {MATRIX_SIZE*MATRIX_SIZE, 0, 0};
+    size_t local_work_size[3] = {1, 0, 0};
     CL_TRY(clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL));
 
     /* Read */
-    CL_TRY(clEnqueueReadBuffer(command_queue, memobj, CL_TRUE, 0, MEM_SIZE * sizeof(float), mem, 0, NULL, NULL));
-    for (int i = 0; i < MEM_SIZE; i++) {
-        printf("mem[%d]: %f\n", i, mem[i]);
+    CL_TRY(clEnqueueReadBuffer(command_queue, memobjC, CL_TRUE, 0, MATRIX_SIZE*MATRIX_SIZE*sizeof(float), memC, 0, NULL, NULL));
+    for (int i = 0; i < MATRIX_SIZE; i++) {
+        for (int j = 0; j < MATRIX_SIZE; j++) {
+            printf("memC[%d, %d]: %7.2f    ", i, j, memC[i*MATRIX_SIZE + j]);
+        }
+        printf("\n");
     }
 
     /* Release */
@@ -110,7 +127,9 @@ int main() {
 
     CL_TRY(clReleaseKernel(kernel));
     CL_TRY(clReleaseProgram(program));
-    CL_TRY(clReleaseMemObject(memobj));
+    CL_TRY(clReleaseMemObject(memobjA));
+    CL_TRY(clReleaseMemObject(memobjB));
+    CL_TRY(clReleaseMemObject(memobjC));
     CL_TRY(clReleaseCommandQueue(command_queue));
     CL_TRY(clReleaseContext(context));
 

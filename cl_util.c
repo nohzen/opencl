@@ -121,7 +121,7 @@ void print_platform_info(cl_platform_id platform) {
 }
 
 
-void print_device_info_each(cl_device_id device, cl_device_info param_name, char *param_name_str) {
+void print_device_info_char(cl_device_id device, cl_device_info param_name, char *param_name_str) {
     size_t param_value_size;
     CL_TRY(clGetDeviceInfo(device, param_name, 0, NULL, &param_value_size));
     char *param_value = (char *)malloc(sizeof(char) * param_value_size);
@@ -130,8 +130,22 @@ void print_device_info_each(cl_device_id device, cl_device_info param_name, char
     free(param_value);
 }
 
+cl_uint print_device_info_uint(cl_device_id device, cl_device_info param_name, char *param_name_str) {
+    cl_uint param_value;
+    CL_TRY(clGetDeviceInfo(device, param_name, sizeof(cl_uint), &param_value, NULL));
+    printf("    %s: %d\n", param_name_str, param_value);
+    return param_value;
+}
+
+size_t print_device_info_size_t(cl_device_id device, cl_device_info param_name, char *param_name_str) {
+    size_t param_value;
+    CL_TRY(clGetDeviceInfo(device, param_name, sizeof(size_t), &param_value, NULL));
+    printf("    %s: %ld\n", param_name_str, param_value);
+    return param_value;
+}
+
 void print_device_info(cl_device_id device) {
-    print_device_info_each(device, CL_DEVICE_NAME, GET_STR(CL_DEVICE_NAME));
+    print_device_info_char(device, CL_DEVICE_NAME, GET_STR(CL_DEVICE_NAME));
     {
         cl_device_type device_type;
         CL_TRY(clGetDeviceInfo(device, CL_DEVICE_TYPE, sizeof(device_type), &device_type, NULL));
@@ -148,12 +162,26 @@ void print_device_info(cl_device_id device) {
             printf("    %s: %s\n", "CL_DEVICE_TYPE", "CL_DEVICE_TYPE_ACCELERATOR");
         }
     }
-    print_device_info_each(device, CL_DEVICE_VENDOR, GET_STR(CL_DEVICE_VENDOR));
-    print_device_info_each(device, CL_DRIVER_VERSION, GET_STR(CL_DRIVER_VERSION));
-    print_device_info_each(device, CL_DEVICE_PROFILE, GET_STR(CL_DEVICE_PROFILE));
-    print_device_info_each(device, CL_DEVICE_VERSION, GET_STR(CL_DEVICE_VERSION));
-    print_device_info_each(device, CL_DEVICE_OPENCL_C_VERSION, GET_STR(CL_DEVICE_OPENCL_C_VERSION));
-    // print_device_info_each(device, CL_DEVICE_EXTENSIONS, GET_STR(CL_DEVICE_EXTENSIONS));
+    print_device_info_char(device, CL_DEVICE_VENDOR, GET_STR(CL_DEVICE_VENDOR));
+    print_device_info_char(device, CL_DRIVER_VERSION, GET_STR(CL_DRIVER_VERSION));
+    print_device_info_char(device, CL_DEVICE_PROFILE, GET_STR(CL_DEVICE_PROFILE));
+    print_device_info_char(device, CL_DEVICE_VERSION, GET_STR(CL_DEVICE_VERSION));
+    print_device_info_char(device, CL_DEVICE_OPENCL_C_VERSION, GET_STR(CL_DEVICE_OPENCL_C_VERSION));
+    // print_device_info_char(device, CL_DEVICE_EXTENSIONS, GET_STR(CL_DEVICE_EXTENSIONS));
+
+    print_device_info_uint(device, CL_DEVICE_MAX_COMPUTE_UNITS, GET_STR(CL_DEVICE_MAX_COMPUTE_UNITS));
+    {
+        cl_uint work_dim = print_device_info_uint(device, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, GET_STR(CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS));
+        size_t *work_item_sizes = (size_t *)malloc(work_dim * sizeof(size_t));
+        CL_TRY(clGetDeviceInfo(device, CL_DEVICE_MAX_WORK_ITEM_SIZES, work_dim * sizeof(size_t), work_item_sizes, NULL));
+        printf("    %s:\n", GET_STR(CL_DEVICE_MAX_WORK_ITEM_SIZES));
+        for (int i = 0; i < work_dim; i++) {
+            printf("      %d: %ld in work group\n", i, work_item_sizes[i]);
+        }
+        free(work_item_sizes);
+    }
+    print_device_info_size_t(device, CL_DEVICE_MAX_WORK_GROUP_SIZE, GET_STR(CL_DEVICE_MAX_WORK_GROUP_SIZE));
+
 }
 
 

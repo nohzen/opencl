@@ -7,7 +7,6 @@
 #define MAX_PLATFORMS 3
 #define MAX_DEVICES 3
 #define MAX_SOURCE_SIZE (0x100000)
-#define LOCAL_MEM_SIZE (65536 / 8)
 
 int main() {
     cl_int ret = CL_SUCCESS;
@@ -47,10 +46,41 @@ int main() {
     CL_TRY(ret);
 
     /* Memory Object */
-    cl_mem memobjA = NULL;
-    memobjA = clCreateBuffer(context, CL_MEM_READ_WRITE, LOCAL_MEM_SIZE*sizeof(int), NULL, &ret);
-    int memA[LOCAL_MEM_SIZE];
-    CL_TRY(clEnqueueWriteBuffer(command_queue, memobjA, CL_TRUE, 0, LOCAL_MEM_SIZE*sizeof(int), memA, 0, NULL, NULL));
+    cl_mem memobj = NULL;
+    int num_out = 9;
+    memobj = clCreateBuffer(context, CL_MEM_READ_WRITE, num_out*sizeof(cl_float4), NULL, &ret);
+    // CL_TRY(clEnqueueWriteBuffer(command_queue, memobj, CL_TRUE, 0, LOCAL_MEM_SIZE*sizeof(int), memA, 0, NULL, NULL));
+
+    /* Image */
+    int width = 4;
+    int height = 4;
+    cl_image_format image_format;
+    image_format.image_channel_order = CL_R;
+    image_format.image_channel_data_type = CL_FLOAT;
+    // cl_mem image = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format, width, height, 0, 0, &ret); // deprecated
+    cl_image_desc image_desc;
+    image_desc.image_type = CL_MEM_OBJECT_IMAGE2D;
+    image_desc.image_width = width;
+    image_desc.image_height = height;
+    image_desc.image_depth = 1;
+    image_desc.image_array_size = 1;
+    image_desc.image_row_pitch = 0;
+    image_desc.image_slice_pitch = 0;
+    image_desc.num_mip_levels = 0;
+    image_desc.num_samples = 0;
+    image_desc.buffer = NULL;
+    cl_mem image = clCreateImage(context, CL_MEM_READ_ONLY, &image_format, &image_desc, NULL, &ret);
+
+    CL_TRY(ret);
+    size_t origin[] = {0, 0, 0};
+    size_t region[] = {width, height, 1};
+    float data[] = {
+        10, 20, 30, 40,
+        10, 20, 30, 40,
+        10, 20, 30, 40,
+        10, 20, 30, 40,
+    };
+    CL_TRY(clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region, width*sizeof(float), 0, data, 0, NULL, NULL));
 
     /* Program */
     int use_binary = 0;
@@ -86,12 +116,10 @@ int main() {
 
     /* Kernel */
     cl_kernel kernel = NULL;
-    kernel = clCreateKernel(program, "local_test", &ret);
+    kernel = clCreateKernel(program, "image_test", &ret);
     CL_TRY(ret);
-    cl_int local_mem_size = LOCAL_MEM_SIZE;
-    CL_TRY(clSetKernelArg(kernel, 0, local_mem_size, NULL));
-    // CL_TRY(clSetKernelArg(kernel, 0, sizeof(memobjA), &memobjA));
-    CL_TRY(clSetKernelArg(kernel, 1, sizeof(local_mem_size), &local_mem_size));
+    CL_TRY(clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&image));
+    CL_TRY(clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&memobj));
 
     // CL_TRY(clEnqueueTask(command_queue, kernel, 0, NULL, NULL)); // deprecated
     size_t global_work_size[3] = {1, 0, 0};
@@ -101,10 +129,11 @@ int main() {
     CL_TRY(clWaitForEvents(1, &event));
 
     /* Read */
-    // CL_TRY(clEnqueueReadBuffer(command_queue, memobjA, CL_TRUE, 0, LOCAL_MEM_SIZE*sizeof(int), memA, 0, NULL, NULL));
-    // for (int i = 0; i < LOCAL_MEM_SIZE; i++) {
-    //     printf("[%d] : %d\n", i, memA[i]);
-    // }
+    float result[9*4];
+    CL_TRY(clEnqueueReadBuffer(command_queue, memobj, CL_TRUE, 0, num_out*sizeof(cl_float4), result, 0, NULL, NULL));
+    for (int i = 0; i < num_out; i++) {
+        printf("  %f,%f,%f,%f\n", result[i*4+0], result[i*4+1], result[i*4+2], result[i*4+3]);
+    }
 
     /* Release */
     CL_TRY(clFlush(command_queue));
@@ -112,7 +141,8 @@ int main() {
 
     CL_TRY(clReleaseKernel(kernel));
     CL_TRY(clReleaseProgram(program));
-    CL_TRY(clReleaseMemObject(memobjA));
+    CL_TRY(clReleaseMemObject(memobj));
+    CL_TRY(clReleaseMemObject(image));
     CL_TRY(clReleaseCommandQueue(command_queue));
     CL_TRY(clReleaseContext(context));
 

@@ -130,6 +130,13 @@ void print_device_info_char(cl_device_id device, cl_device_info param_name, char
     free(param_value);
 }
 
+cl_bool print_device_info_bool(cl_device_id device, cl_device_info param_name, char *param_name_str) {
+    cl_bool param_value;
+    CL_TRY(clGetDeviceInfo(device, param_name, sizeof(cl_bool), &param_value, NULL));
+    printf("    %s: %d\n", param_name_str, param_value);
+    return param_value;
+}
+
 cl_uint print_device_info_uint(cl_device_id device, cl_device_info param_name, char *param_name_str) {
     cl_uint param_value;
     CL_TRY(clGetDeviceInfo(device, param_name, sizeof(cl_uint), &param_value, NULL));
@@ -224,7 +231,15 @@ void print_device_info(cl_device_id device) {
     }
     print_device_info_cl_ulong(device, CL_DEVICE_LOCAL_MEM_SIZE, GET_STR(CL_DEVICE_LOCAL_MEM_SIZE)); // bytes
 
-
+    /* Image */
+    print_device_info_bool(device, CL_DEVICE_IMAGE_SUPPORT, GET_STR(CL_DEVICE_IMAGE_SUPPORT));
+    print_device_info_uint(device, CL_DEVICE_MAX_READ_IMAGE_ARGS, GET_STR(CL_DEVICE_MAX_READ_IMAGE_ARGS));
+    print_device_info_uint(device, CL_DEVICE_MAX_WRITE_IMAGE_ARGS, GET_STR(CL_DEVICE_MAX_WRITE_IMAGE_ARGS));
+    print_device_info_size_t(device, CL_DEVICE_IMAGE2D_MAX_WIDTH, GET_STR(CL_DEVICE_IMAGE2D_MAX_WIDTH));
+    print_device_info_size_t(device, CL_DEVICE_IMAGE2D_MAX_HEIGHT, GET_STR(CL_DEVICE_IMAGE2D_MAX_HEIGHT));
+    print_device_info_size_t(device, CL_DEVICE_IMAGE3D_MAX_WIDTH, GET_STR(CL_DEVICE_IMAGE3D_MAX_WIDTH));
+    print_device_info_size_t(device, CL_DEVICE_IMAGE3D_MAX_HEIGHT, GET_STR(CL_DEVICE_IMAGE3D_MAX_HEIGHT));
+    print_device_info_size_t(device, CL_DEVICE_IMAGE3D_MAX_DEPTH, GET_STR(CL_DEVICE_IMAGE3D_MAX_DEPTH));
 
 }
 

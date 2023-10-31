@@ -118,6 +118,7 @@ int main() {
     cl_kernel kernel = NULL;
     kernel = clCreateKernel(program, "image_test", &ret);
     CL_TRY(ret);
+    print_kernel_info(kernel, device_id[0]);
     CL_TRY(clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&image));
     CL_TRY(clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&memobj));
 

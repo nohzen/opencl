@@ -197,6 +197,7 @@ void print_device_info(cl_device_id device) {
         free(work_item_sizes);
     }
     print_device_info_size_t(device, CL_DEVICE_MAX_WORK_GROUP_SIZE, GET_STR(CL_DEVICE_MAX_WORK_GROUP_SIZE));
+    print_device_info_size_t(device, CL_DEVICE_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, GET_STR(CL_DEVICE_PREFERRED_WORK_GROUP_SIZE_MULTIPLE));
 
     /* Vector (SIMD) */
     print_device_info_uint(device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR, GET_STR(CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR));
@@ -257,4 +258,32 @@ void print_program_info(cl_program program) {
     print_program_info_each(program, CL_PROGRAM_SOURCE, GET_STR(CL_PROGRAM_SOURCE));
 }
 
+
+void print_kernel_info_each_size_t(cl_kernel kernel, cl_device_id device, cl_kernel_work_group_info param_name, char *param_name_str) {
+    size_t param_value;
+    CL_TRY(clGetKernelWorkGroupInfo(kernel, device, param_name, sizeof(size_t), &param_value, NULL));
+    printf("    %s: %ld\n", param_name_str, param_value);
+}
+
+void print_kernel_info_each_ulong(cl_kernel kernel, cl_device_id device, cl_kernel_work_group_info param_name, char *param_name_str) {
+    cl_ulong param_value;
+    CL_TRY(clGetKernelWorkGroupInfo(kernel, device, param_name, sizeof(cl_ulong), &param_value, NULL));
+    printf("    %s: %lu\n", param_name_str, param_value);
+}
+
+void print_kernel_info(cl_kernel kernel, cl_device_id device) {
+    printf("Kernel info\n");
+#if 0
+    {
+        printf("    %s:\n", GET_STR(CL_KERNEL_GLOBAL_WORK_SIZE));
+        size_t param_value[3];
+        CL_TRY(clGetKernelWorkGroupInfo(kernel, device, CL_KERNEL_GLOBAL_WORK_SIZE, 3*sizeof(size_t), param_value, NULL));
+        printf("      (%ld, %ld, %ld) \n", param_value[0], param_value[1], param_value[2]);
+    }
+#endif
+    print_kernel_info_each_size_t(kernel, device, CL_KERNEL_WORK_GROUP_SIZE, GET_STR(CL_KERNEL_WORK_GROUP_SIZE));
+    print_kernel_info_each_size_t(kernel, device, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, GET_STR(CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE)); // N * local_work_size
+    print_kernel_info_each_ulong(kernel, device, CL_KERNEL_LOCAL_MEM_SIZE, GET_STR(CL_KERNEL_LOCAL_MEM_SIZE));
+    print_kernel_info_each_ulong(kernel, device, CL_KERNEL_PRIVATE_MEM_SIZE, GET_STR(CL_KERNEL_PRIVATE_MEM_SIZE));
+}
 

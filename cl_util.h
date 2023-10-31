@@ -16,4 +16,6 @@ void print_device_info(cl_device_id device);
 
 void print_program_info(cl_program program);
 
+void print_kernel_info(cl_kernel kernel, cl_device_id device);
+
 

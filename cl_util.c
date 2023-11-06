@@ -117,7 +117,7 @@ void print_platform_info(cl_platform_id platform) {
     print_platform_info_each(platform, CL_PLATFORM_NAME, GET_STR(CL_PLATFORM_NAME));
     print_platform_info_each(platform, CL_PLATFORM_VERSION, GET_STR(CL_PLATFORM_VERSION));
     print_platform_info_each(platform, CL_PLATFORM_PROFILE, GET_STR(CL_PLATFORM_PROFILE));
-    // print_platform_info_each(platform, CL_PLATFORM_EXTENSIONS, GET_STR(CL_PLATFORM_EXTENSIONS));
+    print_platform_info_each(platform, CL_PLATFORM_EXTENSIONS, GET_STR(CL_PLATFORM_EXTENSIONS));
 }
 
 

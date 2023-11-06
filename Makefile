@@ -12,7 +12,7 @@ offline_compiler: $(OBJS_OC)
 	${CC} -o $@ $(OBJS_OC) $(LDLIBS)
 
 clean:
-	rm -f main $(OBJS) offline_compiler $(OBJS_OC)
+	rm -f main $(OBJS_MAIN) offline_compiler $(OBJS_OC)
 
 run:
 	./main

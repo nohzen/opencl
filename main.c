@@ -4,8 +4,8 @@
 #include "cl_util.h"
 
 
-#define MAX_PLATFORMS 3
-#define MAX_DEVICES 3
+#define MAX_PLATFORMS 8
+#define MAX_DEVICES 8
 #define MAX_SOURCE_SIZE (0x100000)
 
 int main() {
@@ -24,12 +24,31 @@ int main() {
     /* Device */
     cl_device_id device_id[MAX_DEVICES] = {0};
     cl_uint num_devices = 0;
-    // CL_DEVICE_TYPE_DEFAULT, CL_DEVICE_TYPE_CPU, CL_DEVICE_TYPE_GPU, CL_DEVICE_TYPE_ALL
-    CL_TRY(clGetDeviceIDs(platform_ids[0], CL_DEVICE_TYPE_DEFAULT, MAX_DEVICES, device_id, &num_devices));
-    printf("Device number = %d\n", num_devices);
-    for (int i = 0; i < num_devices; i++) {
-        printf("  Device info: %d\n", i);
-        print_device_info(device_id[i]);
+    for (int i = 0; i < num_platforms; i++) {
+        printf("Platform index: %d\n", i);
+
+        // CL_DEVICE_TYPE_DEFAULT, CL_DEVICE_TYPE_CPU, CL_DEVICE_TYPE_GPU, CL_DEVICE_TYPE_ALL
+        CL_TRY(clGetDeviceIDs(platform_ids[i], CL_DEVICE_TYPE_ALL, MAX_DEVICES, device_id, &num_devices));
+        printf("  Device number = %d\n", num_devices);
+        for (int i = 0; i < num_devices; i++) {
+            printf("  Device info: %d\n", i);
+            print_device_info(device_id[i]);
+        }
+    }
+
+    /* Select device */
+    cl_device_type select_device_type = CL_DEVICE_TYPE_GPU; // CL_DEVICE_TYPE_CPU
+    for (int i = 0; i < num_platforms; i++) {
+        cl_int ret_getDevice = clGetDeviceIDs(platform_ids[i], select_device_type, MAX_DEVICES, device_id, &num_devices);
+        if (ret_getDevice != CL_SUCCESS) {
+            continue;
+        }
+
+        cl_device_type device_type;
+        CL_TRY(clGetDeviceInfo(device_id[0], CL_DEVICE_TYPE, sizeof(device_type), &device_type, NULL));
+        if (device_type == select_device_type) {
+            break;
+        }
     }
 
     /* Context */

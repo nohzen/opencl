@@ -197,7 +197,7 @@ void print_device_info(cl_device_id device) {
         free(work_item_sizes);
     }
     print_device_info_size_t(device, CL_DEVICE_MAX_WORK_GROUP_SIZE, GET_STR(CL_DEVICE_MAX_WORK_GROUP_SIZE));
-    print_device_info_size_t(device, CL_DEVICE_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, GET_STR(CL_DEVICE_PREFERRED_WORK_GROUP_SIZE_MULTIPLE));
+    // print_device_info_size_t(device, CL_DEVICE_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, GET_STR(CL_DEVICE_PREFERRED_WORK_GROUP_SIZE_MULTIPLE));
 
     /* Vector (SIMD) */
     print_device_info_uint(device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR, GET_STR(CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR));

@@ -10,6 +10,7 @@
 
 int main() {
     cl_int ret = CL_SUCCESS;
+    int profiling = 1;
 
     /* Platform */
     cl_platform_id platform_ids[MAX_PLATFORMS] = {0};
@@ -59,9 +60,14 @@ int main() {
     /* Command queue */
     cl_command_queue command_queue = NULL;
     // command_queue = clCreateCommandQueue(context, device_id[0], 0, &ret); // deprecated
-    const cl_queue_properties *properties = NULL;
-    // const cl_queue_properties properties[] = {CL_QUEUE_PROPERTIES, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | CL_QUEUE_PROFILING_ENABLE, 0};
-    command_queue = clCreateCommandQueueWithProperties(context, device_id[0], properties, &ret);
+    if (profiling) {
+        cl_command_queue_properties properties[] = {CL_QUEUE_PROPERTIES, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | CL_QUEUE_PROFILING_ENABLE, 0};
+        command_queue = clCreateCommandQueueWithProperties(context, device_id[0], properties, &ret);
+    }
+    else {
+        const cl_queue_properties *properties = NULL;
+        command_queue = clCreateCommandQueueWithProperties(context, device_id[0], properties, &ret);
+    }
     CL_TRY(ret);
 
     /* Memory Object */
@@ -99,7 +105,8 @@ int main() {
         10, 20, 30, 40,
         10, 20, 30, 40,
     };
-    CL_TRY(clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region, width*sizeof(float), 0, data, 0, NULL, NULL));
+    cl_event event_write;
+    CL_TRY(clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region, width*sizeof(float), 0, data, 0, NULL, &event_write));
 
     /* Program */
     int use_binary = 0;
@@ -144,13 +151,14 @@ int main() {
     // CL_TRY(clEnqueueTask(command_queue, kernel, 0, NULL, NULL)); // deprecated
     size_t global_work_size[3] = {1, 0, 0};
     size_t local_work_size[3] = {1, 0, 0};
-    cl_event event;
-    CL_TRY(clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event));
-    CL_TRY(clWaitForEvents(1, &event));
+    cl_event event_kernel;
+    CL_TRY(clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, &event_kernel));
+    CL_TRY(clWaitForEvents(1, &event_kernel));
 
     /* Read */
     float result[9*4];
-    CL_TRY(clEnqueueReadBuffer(command_queue, memobj, CL_TRUE, 0, num_out*sizeof(cl_float4), result, 0, NULL, NULL));
+    cl_event event_read;
+    CL_TRY(clEnqueueReadBuffer(command_queue, memobj, CL_TRUE, 0, num_out*sizeof(cl_float4), result, 0, NULL, &event_read));
     for (int i = 0; i < num_out; i++) {
         printf("  %f,%f,%f,%f\n", result[i*4+0], result[i*4+1], result[i*4+2], result[i*4+3]);
     }
@@ -159,10 +167,19 @@ int main() {
     CL_TRY(clFlush(command_queue));
     CL_TRY(clFinish(command_queue));
 
+    if (profiling) {
+        print_time(event_write, "write");
+        print_time(event_kernel, "kernel");
+        print_time(event_read, "read");
+    }
+
     CL_TRY(clReleaseKernel(kernel));
     CL_TRY(clReleaseProgram(program));
     CL_TRY(clReleaseMemObject(memobj));
     CL_TRY(clReleaseMemObject(image));
+    CL_TRY(clReleaseEvent(event_write));
+    CL_TRY(clReleaseEvent(event_kernel));
+    CL_TRY(clReleaseEvent(event_read));
     CL_TRY(clReleaseCommandQueue(command_queue));
     CL_TRY(clReleaseContext(context));
 

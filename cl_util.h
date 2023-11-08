@@ -18,4 +18,4 @@ void print_program_info(cl_program program);
 
 void print_kernel_info(cl_kernel kernel, cl_device_id device);
 
-
+void print_time(cl_event event, char *event_name);

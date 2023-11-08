@@ -287,3 +287,12 @@ void print_kernel_info(cl_kernel kernel, cl_device_id device) {
     print_kernel_info_each_ulong(kernel, device, CL_KERNEL_PRIVATE_MEM_SIZE, GET_STR(CL_KERNEL_PRIVATE_MEM_SIZE));
 }
 
+
+void print_time(cl_event event, char *event_name) {
+    cl_ulong start_time;
+    cl_ulong end_time;
+    CL_TRY(clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start_time, NULL));
+    CL_TRY(clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end_time, NULL));
+    printf("time of %-8s: %10.3f [ms]\n", event_name, (end_time - start_time)/1000000.0);
+}
+
